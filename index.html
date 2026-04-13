@@ -29,6 +29,14 @@
             touch-action: manipulation; /* Prevents double-tap zooming on mobile */
         }
 
+        /* NEW: Global Title Style */
+        .global-title {
+            margin: 0 0 2rem 0;
+            font-size: 2rem;
+            color: var(--text-color);
+            font-weight: 700;
+        }
+
         .container {
             width: 90%;
             max-width: 400px;
@@ -36,11 +44,12 @@
             background: white;
             border-radius: 20px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            position: relative;
         }
 
         h1 {
             margin-top: 0;
-            font-size: 2rem;
+            font-size: 1.8rem;
             color: var(--text-color);
         }
 
@@ -66,20 +75,54 @@
             display: none; /* Hidden initially */
             flex-direction: column;
             gap: 1.5rem;
-        }
-
-        .count-display {
-            font-size: 6rem;
-            font-weight: 900;
-            line-height: 1;
-            margin: 1rem 0;
-            color: var(--text-color);
+            align-items: center;
         }
 
         .max-display {
             font-size: 1.2rem;
             color: #888;
             font-weight: bold;
+        }
+
+        /* NEW: Circular Progress Bar Container and Styling */
+        .display-container {
+            position: relative;
+            width: 250px;
+            height: 250px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 1rem 0;
+        }
+
+        .count-display {
+            font-size: 6rem;
+            font-weight: 900;
+            line-height: 1;
+            color: var(--text-color);
+            position: absolute; /* Place text on top of SVG */
+            z-index: 10;
+        }
+
+        .progress-ring {
+            width: 100%;
+            height: 100%;
+            transform: rotate(-90deg); /* Start progress from top */
+        }
+
+        .progress-ring__circle {
+            transition: stroke-dashoffset 0.1s ease; /* Smooth filling */
+        }
+
+        .progress-ring__circle--bg {
+            stroke: #eee;
+        }
+
+        .progress-ring__circle--fg {
+            stroke: var(--primary-btn);
+            /* Circumference for radius=110 is ~691px. Set to full initial offset */
+            stroke-dasharray: 691;
+            stroke-dashoffset: 691; 
         }
 
         /* Buttons */
@@ -133,10 +176,13 @@
         .controls-row {
             display: flex;
             gap: 1rem;
+            width: 100%;
         }
     </style>
 </head>
 <body>
+
+    <div class="global-title">You can do it, Neebs!</div>
 
     <div class="container">
         <div id="setup-screen">
@@ -148,7 +194,14 @@
 
         <div id="counter-screen">
             <div class="max-display">Target: <span id="max-display-val">0</span></div>
-            <div class="count-display" id="current-count">0</div>
+            
+            <div class="display-container">
+                <svg class="progress-ring" viewBox="0 0 240 240">
+                    <circle class="progress-ring__circle progress-ring__circle--bg" cx="120" cy="120" r="110" fill="none" stroke-width="20"></circle>
+                    <circle class="progress-ring__circle progress-ring__circle--fg" cx="120" cy="120" r="110" fill="none" stroke-width="20"></circle>
+                </svg>
+                <div class="count-display" id="current-count">0</div>
+            </div>
             
             <button class="btn-increment" onclick="increment()">+ Count</button>
             
@@ -165,6 +218,8 @@
         // State variables
         let count = 0;
         let maxCount = 0;
+        // NEW: Progress Bar Circumference (2 * pi * radius of 110)
+        const circumference = 2 * Math.PI * 110; 
 
         // DOM Elements
         const setupScreen = document.getElementById('setup-screen');
@@ -172,6 +227,7 @@
         const countDisplay = document.getElementById('current-count');
         const maxDisplayVal = document.getElementById('max-display-val');
         const maxInput = document.getElementById('max-input');
+        const progressCircleFg = document.querySelector('.progress-ring__circle--fg'); // NEW: Progress circle
 
         // Initialize App on load
         function init() {
@@ -245,6 +301,16 @@
         function updateDisplay() {
             countDisplay.innerText = count;
             maxDisplayVal.innerText = maxCount;
+            
+            // NEW: Update Circular Progress Bar
+            if (maxCount > 0) {
+                const progressFraction = count / maxCount;
+                const offset = circumference * (1 - progressFraction);
+                progressCircleFg.style.strokeDashoffset = offset;
+            } else {
+                // Initial state/error prevention
+                progressCircleFg.style.strokeDashoffset = circumference;
+            }
         }
 
         function showCounterScreen() {
