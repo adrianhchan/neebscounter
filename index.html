@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Neebs's Counter</title>
     <style>
         :root {
@@ -13,6 +13,7 @@
             --secondary-btn: #5D6D7E; /* Slate */
             --secondary-btn-hover: #4A5868;
             --danger-btn: #E74C3C;
+            --panel-bg: #f0ebe1;
         }
 
         body {
@@ -24,31 +25,27 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            min-height: 100vh;
+            height: 100vh; /* Fixed to viewport height to prevent scroll */
+            overflow: hidden;
             text-align: center;
-            touch-action: manipulation; /* Prevents double-tap zooming on mobile */
-        }
-
-        /* NEW: Global Title Style */
-        .global-title {
-            margin: 0 0 2rem 0;
-            font-size: 2rem;
-            color: var(--text-color);
-            font-weight: 700;
+            touch-action: manipulation; /* Prevents double-tap zooming */
         }
 
         .container {
-            width: 90%;
+            width: 92%;
             max-width: 400px;
-            padding: 2rem;
+            padding: 1.2rem;
             background: white;
             border-radius: 20px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.05);
-            position: relative;
+            box-sizing: border-box;
+            max-height: 98vh; /* Fallback for very small screens */
+            display: flex;
+            flex-direction: column;
         }
 
         h1 {
-            margin-top: 0;
+            margin: 0 0 1rem 0;
             font-size: 1.8rem;
             color: var(--text-color);
         }
@@ -57,7 +54,8 @@
         #setup-screen {
             display: flex;
             flex-direction: column;
-            gap: 1.5rem;
+            gap: 1.2rem;
+            margin: auto 0;
         }
 
         input[type="number"] {
@@ -74,140 +72,204 @@
         #counter-screen {
             display: none; /* Hidden initially */
             flex-direction: column;
-            gap: 1.5rem;
+            gap: 0.8rem; /* Tightened gap for mobile fit */
             align-items: center;
+            flex: 1;
+            justify-content: space-between;
         }
 
         .max-display {
-            font-size: 1.2rem;
+            font-size: 1.1rem;
             color: #888;
             font-weight: bold;
+            margin-top: 0.5rem;
         }
 
-        /* NEW: Circular Progress Bar Container and Styling */
+        /* Circular Progress Bar */
         .display-container {
             position: relative;
-            width: 250px;
-            height: 250px;
+            width: 170px; /* Scaled down slightly */
+            height: 170px;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin: 1rem 0;
         }
 
         .count-display {
-            font-size: 6rem;
+            font-size: 4.5rem; /* Scaled down slightly */
             font-weight: 900;
             line-height: 1;
             color: var(--text-color);
-            position: absolute; /* Place text on top of SVG */
+            position: absolute;
             z-index: 10;
         }
 
         .progress-ring {
             width: 100%;
             height: 100%;
-            transform: rotate(-90deg); /* Start progress from top */
+            transform: rotate(-90deg);
         }
 
         .progress-ring__circle {
-            transition: stroke-dashoffset 0.1s ease; /* Smooth filling */
+            transition: stroke-dashoffset 0.1s ease;
         }
 
-        .progress-ring__circle--bg {
-            stroke: #eee;
-        }
-
+        .progress-ring__circle--bg { stroke: #eee; }
         .progress-ring__circle--fg {
             stroke: var(--primary-btn);
-            /* Circumference for radius=110 is ~691px. Set to full initial offset */
-            stroke-dasharray: 691;
-            stroke-dashoffset: 691; 
+            stroke-dasharray: 565.48; /* Circumference for r=90 */
+            stroke-dashoffset: 565.48; 
         }
 
-        /* Buttons */
+        /* General Buttons */
         button {
             border: none;
             border-radius: 12px;
-            padding: 1rem 2rem;
-            font-size: 1.2rem;
             font-weight: bold;
             color: white;
             cursor: pointer;
             transition: transform 0.1s, background-color 0.2s;
+            touch-action: manipulation;
+        }
+
+        button:active { transform: scale(0.95); }
+
+        /* Main Controls */
+        .main-controls {
             width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
         }
 
-        button:active {
-            transform: scale(0.95);
-        }
-
-        .btn-start { background-color: var(--primary-btn); }
+        .btn-start { background-color: var(--primary-btn); padding: 1rem; font-size: 1.2rem; width: 100%; }
         .btn-start:hover { background-color: var(--primary-btn-hover); }
 
         .btn-increment {
             background-color: var(--primary-btn);
-            font-size: 1.8rem;
-            padding: 1.5rem;
+            font-size: 1.5rem;
+            padding: 1rem;
+            width: 100%;
         }
         .btn-increment:hover { background-color: var(--primary-btn-hover); }
 
-        .btn-decrement { background-color: var(--secondary-btn); }
-        .btn-decrement:hover { background-color: var(--secondary-btn-hover); }
+        .controls-row {
+            display: flex;
+            gap: 0.5rem;
+            width: 100%;
+        }
 
+        .btn-decrement { background-color: var(--secondary-btn); padding: 0.8rem; flex: 1; font-size: 1.2rem; }
         .btn-reset { 
             background-color: transparent;
             color: var(--danger-btn);
             border: 2px solid var(--danger-btn);
+            padding: 0.8rem; 
+            flex: 1;
+            font-size: 1.2rem;
         }
-        .btn-reset:hover {
-            background-color: rgba(231, 76, 60, 0.1);
+
+        /* Secondary Counter Panel */
+        .sub-counter-panel {
+            background-color: var(--panel-bg);
+            border-radius: 15px;
+            padding: 0.8rem;
+            width: 100%;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
         }
-        
+
+        .sub-header {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--secondary-btn);
+            font-weight: 800;
+        }
+
+        .sub-controls {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+        }
+
+        .sub-count-display {
+            font-size: 2.2rem;
+            font-weight: bold;
+            color: var(--text-color);
+            min-width: 50px;
+        }
+
+        .btn-sub {
+            background-color: var(--secondary-btn);
+            padding: 0.6rem 1.5rem;
+            font-size: 1.5rem;
+            border-radius: 8px;
+        }
+
+        .btn-sub-reset {
+            background: transparent;
+            color: var(--secondary-btn);
+            border: none;
+            text-decoration: underline;
+            font-size: 0.9rem;
+            padding: 0.2rem;
+            align-self: center;
+        }
+
+        /* New Project Link */
         .btn-new-project {
             background-color: transparent;
             color: var(--secondary-btn);
-            font-size: 1rem;
+            font-size: 0.9rem;
             padding: 0.5rem;
-            margin-top: 1rem;
             text-decoration: underline;
-        }
-
-        .controls-row {
-            display: flex;
-            gap: 1rem;
-            width: 100%;
+            margin-top: 0.2rem;
         }
     </style>
 </head>
 <body>
 
-    <div class="global-title">You can do it, Neebs!</div>
-
     <div class="container">
         <div id="setup-screen">
             <h1>Neebs's Counter</h1>
-            <label for="max-input">How many stitches/rows to count to?</label>
+            <label for="max-input">Target stitches/rows:</label>
             <input type="number" id="max-input" placeholder="e.g., 50" min="1">
             <button class="btn-start" onclick="startCounting()">Start Knitting</button>
         </div>
 
         <div id="counter-screen">
+            
             <div class="max-display">Target: <span id="max-display-val">0</span></div>
             
             <div class="display-container">
-                <svg class="progress-ring" viewBox="0 0 240 240">
-                    <circle class="progress-ring__circle progress-ring__circle--bg" cx="120" cy="120" r="110" fill="none" stroke-width="20"></circle>
-                    <circle class="progress-ring__circle progress-ring__circle--fg" cx="120" cy="120" r="110" fill="none" stroke-width="20"></circle>
+                <svg class="progress-ring" viewBox="0 0 200 200">
+                    <circle class="progress-ring__circle progress-ring__circle--bg" cx="100" cy="100" r="90" fill="none" stroke-width="15"></circle>
+                    <circle class="progress-ring__circle progress-ring__circle--fg" cx="100" cy="100" r="90" fill="none" stroke-width="15"></circle>
                 </svg>
                 <div class="count-display" id="current-count">0</div>
             </div>
             
-            <button class="btn-increment" onclick="increment()">+ Count</button>
-            
-            <div class="controls-row">
-                <button class="btn-decrement" onclick="decrement()">- 1</button>
-                <button class="btn-reset" onclick="resetCount()">Reset</button>
+            <div class="main-controls">
+                <button class="btn-increment" onclick="incrementMain()">+ Main Count</button>
+                <div class="controls-row">
+                    <button class="btn-decrement" onclick="decrementMain()">- 1</button>
+                    <button class="btn-reset" onclick="resetMain()">Reset</button>
+                </div>
+            </div>
+
+            <div class="sub-counter-panel">
+                <div class="sub-header">Secondary Track</div>
+                <div class="sub-controls">
+                    <button class="btn-sub" onclick="decrementSub()">-</button>
+                    <div class="sub-count-display" id="sub-count">0</div>
+                    <button class="btn-sub" onclick="incrementSub()">+</button>
+                </div>
+                <button class="btn-sub-reset" onclick="resetSub()">Reset Secondary Track</button>
             </div>
             
             <button class="btn-new-project" onclick="newProject()">Start New Project</button>
@@ -216,10 +278,12 @@
 
     <script>
         // State variables
-        let count = 0;
+        let mainCount = 0;
         let maxCount = 0;
-        // NEW: Progress Bar Circumference (2 * pi * radius of 110)
-        const circumference = 2 * Math.PI * 110; 
+        let subCount = 0;
+        
+        // Progress Bar Circumference (2 * pi * r(90))
+        const circumference = 565.48; 
 
         // DOM Elements
         const setupScreen = document.getElementById('setup-screen');
@@ -227,17 +291,19 @@
         const countDisplay = document.getElementById('current-count');
         const maxDisplayVal = document.getElementById('max-display-val');
         const maxInput = document.getElementById('max-input');
-        const progressCircleFg = document.querySelector('.progress-ring__circle--fg'); // NEW: Progress circle
+        const progressCircleFg = document.querySelector('.progress-ring__circle--fg');
+        const subCountDisplay = document.getElementById('sub-count');
 
-        // Initialize App on load
+        // Initialize App
         function init() {
-            const savedCount = localStorage.getItem('neebs_count');
+            const savedMain = localStorage.getItem('neebs_count');
             const savedMax = localStorage.getItem('neebs_maxCount');
+            const savedSub = localStorage.getItem('neebs_subCount');
 
             if (savedMax !== null) {
-                // Restore previous session
-                count = parseInt(savedCount) || 0;
+                mainCount = parseInt(savedMain) || 0;
                 maxCount = parseInt(savedMax);
+                subCount = parseInt(savedSub) || 0;
                 showCounterScreen();
                 updateDisplay();
             }
@@ -246,52 +312,75 @@
         function startCounting() {
             const inputVal = parseInt(maxInput.value);
             if (!inputVal || inputVal <= 0) {
-                alert("Please enter a valid number greater than 0.");
+                alert("Please enter a valid target greater than 0.");
                 return;
             }
             maxCount = inputVal;
-            count = 0;
+            mainCount = 0;
+            subCount = 0;
             saveState();
             showCounterScreen();
             updateDisplay();
         }
 
-        function increment() {
-            if (count < maxCount) {
-                count++;
+        /* --- Main Counter Logic --- */
+        function incrementMain() {
+            if (mainCount < maxCount) {
+                mainCount++;
                 updateDisplay();
                 saveState();
                 
-                // Alert when target is reached
-                if (count === maxCount) {
-                    // Small timeout ensures the number updates visually before the alert blocks the screen
-                    setTimeout(() => {
-                        alert(`Target reached! You hit ${maxCount}.`);
-                    }, 50);
+                if (mainCount === maxCount) {
+                    setTimeout(() => alert(`Target reached! You hit ${maxCount}.`), 50);
                 }
             }
         }
 
-        function decrement() {
-            if (count > 0) {
-                count--;
+        function decrementMain() {
+            if (mainCount > 0) {
+                mainCount--;
                 updateDisplay();
                 saveState();
             }
         }
 
-        function resetCount() {
-            if (confirm("Are you sure you want to reset your count back to 0?")) {
-                count = 0;
+        function resetMain() {
+            if (confirm("Reset your main count back to 0?")) {
+                mainCount = 0;
                 updateDisplay();
                 saveState();
             }
         }
 
+        /* --- Secondary Counter Logic --- */
+        function incrementSub() {
+            subCount++;
+            updateDisplay();
+            saveState();
+        }
+
+        function decrementSub() {
+            if (subCount > 0) {
+                subCount--;
+                updateDisplay();
+                saveState();
+            }
+        }
+
+        function resetSub() {
+            if (confirm("Reset the secondary track to 0?")) {
+                subCount = 0;
+                updateDisplay();
+                saveState();
+            }
+        }
+
+        /* --- Global Logic --- */
         function newProject() {
-            if (confirm("Start a new project? This will erase your current count and target.")) {
+            if (confirm("Start a new project? This erases both counters and your target.")) {
                 localStorage.removeItem('neebs_count');
                 localStorage.removeItem('neebs_maxCount');
+                localStorage.removeItem('neebs_subCount');
                 maxInput.value = '';
                 setupScreen.style.display = 'flex';
                 counterScreen.style.display = 'none';
@@ -299,16 +388,17 @@
         }
 
         function updateDisplay() {
-            countDisplay.innerText = count;
+            // Update Text
+            countDisplay.innerText = mainCount;
             maxDisplayVal.innerText = maxCount;
+            subCountDisplay.innerText = subCount;
             
-            // NEW: Update Circular Progress Bar
+            // Update Ring
             if (maxCount > 0) {
-                const progressFraction = count / maxCount;
+                const progressFraction = mainCount / maxCount;
                 const offset = circumference * (1 - progressFraction);
                 progressCircleFg.style.strokeDashoffset = offset;
             } else {
-                // Initial state/error prevention
                 progressCircleFg.style.strokeDashoffset = circumference;
             }
         }
@@ -319,11 +409,11 @@
         }
 
         function saveState() {
-            localStorage.setItem('neebs_count', count);
+            localStorage.setItem('neebs_count', mainCount);
             localStorage.setItem('neebs_maxCount', maxCount);
+            localStorage.setItem('neebs_subCount', subCount);
         }
 
-        // Run initialization
         init();
     </script>
 </body>
